@@ -1,35 +1,87 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect } from "react";
+import ReactFlow, {
+  MiniMap,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+  BackgroundVariant,
+} from "reactflow";
+import "reactflow/dist/style.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+import Node from "./components/Node";
+import { Node as NodeType } from "./types/Node";
+import useSessionStorage from "./hooks/sessionStorage";
+
+const INIT_TOTAL_NODES = 4;
+
+const nodeTypes = {
+  input: Node,
+};
+
+type initialNodeType = {
+  id: string;
+  position: {
+    x: number;
+    y: number;
+  };
+  data: NodeType;
+  type: string;
+};
+
+const initialNodes: initialNodeType[] = Array.from(
+  { length: INIT_TOTAL_NODES },
+  (_, index) => {
+    return {
+      id: `n${index + 1}`,
+      position: { x: 200 * index, y: 100 * index },
+      data: {
+        id: `n${index + 1}`,
+        data: [],
+        child: null,
+      },
+      type: "input",
+    };
+  }
+);
+
+const initialEdges = Array.from(
+  { length: INIT_TOTAL_NODES - 1 },
+  (_, index) => ({
+    id: `e${index + 1}-${index + 2}`,
+    source: `n${index + 1}`,
+    target: `n${index + 2}`,
+  })
+);
+
+export default function App() {
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [storageNodes, setStorageNodes] = useSessionStorage("nodes", []);
+  const [storageEdges, setStorageEdges] = useSessionStorage("edges", []);
+
+  useEffect(() => {
+    if (nodes.length) {
+      setStorageNodes(nodes);
+      setStorageEdges(edges);
+    } else {
+      setNodes(storageNodes.length ? storageNodes : initialNodes);
+      setEdges(storageEdges.length ? storageEdges : initialEdges);
+    }
+  }, [nodes]);
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div style={{ width: "100vw", height: "100vh" }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}>
+        <Controls />
+        <MiniMap />
+        <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+      </ReactFlow>
+    </div>
+  );
 }
-
-export default App
